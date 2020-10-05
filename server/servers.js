@@ -48,5 +48,25 @@ if(cluster.isMaster) {
 
 
 } else {
-    // stuff for listening
+    let app = express();
+
+    // workers komuniciraju samo sa masterom
+    // zato je listen(0)
+    const server = app.listen(0, 'localhost');
+    const io = socketio(server);
+
+    io.adapter(io_redis({host: 'localhost', port: 6379}));
+
+    io.on('connection', (socket) => {
+        socketMain(io, socket);
+    });
+
+    process.on('message', (message, connection) =>{
+        if(message !== 'sticky-session:connection') {
+            return;
+        }
+
+        server.emit('connection', connection);
+        connection.resume();
+    })
 }
